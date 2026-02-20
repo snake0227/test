@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>定期テスト対策：ノンストップ学習</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 10px; }
+        .card { 
+            background: white; padding: 15px; border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; 
+            margin: auto; display: flex; flex-direction: column; align-items: center; 
+        }
+        canvas {
+            border: 2px solid #333; background-color: #fff; touch-action: none;
+            cursor: crosshair; border-radius: 8px; margin: 10px 0;
+            width: 100%; max-width: 320px; height: 200px;
+        }
+        button {
+            width: 100%; max-width: 400px; height: 50px; margin: 5px auto;
+            cursor: pointer; font-size: 16px; border-radius: 10px; border: 1px solid #ddd;
+            display: block; font-weight: bold;
+        }
+        .choice-btn, .check-btn { background-color: #007bff; color: white; border: none; }
+        .correct-btn { background-color: #28a745; color: white; border: none; }
+        .incorrect-btn { background-color: #dc3545; color: white; border: none; }
+        .clear-btn { background-color: #6c757d; color: white; border: none; width: 45%; display: inline-block; }
+        #answer_zone { display: none; width: 100%; background: #f8f9fa; padding: 15px; border-radius: 10px; box-sizing: border-box; }
+        .ans-text { font-size: 2.2rem; color: #d63384; font-weight: bold; margin: 10px 0; }
+        #question { font-size: 1.1rem; font-weight: bold; min-height: 2.5em; color: #444; }
+        .status { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>定期テスト対策</h1>
+        <p id="displaysubject">教科を選択してください</p>
+        
+        <div id="menu_area">
+            <button class="choice-btn" onclick="changesubject('bio_base')">生物基礎</button>
+            <button class="choice-btn" onclick="changesubject('history')">歴史</button>
+        </div>
+
+        <div id="quiz_area" style="display: none;">
+            <p class="status" id="q_status"></p>
+            <p id="question"></p>
+            
+            <canvas id="write_canvas" width="320" height="200"></canvas>
+            
+            <div style="width: 100%; display: flex; justify-content: space-between; max-width: 320px;">
+                <button type="button" class="clear-btn" onclick="clearCanvas()">消去</button>
+                <button type="button" id="show_ans_btn" class="check-btn" style="width: 50%;" onclick="showAnswer()">答えを見る</button>
+            </div>
+
+            <div id="answer_zone">
+                <p style="margin:0;">正解：</p>
+                <p class="ans-text" id="correct_answer"></p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="correct-btn" onclick="processResult(true)">書けた</button>
+                    <button class="incorrect-btn" onclick="processResult(false)">ダメだ</button>
+                </div>
+            </div>
+            <button onclick="backToMenu()" style="border:none; background:none; color:blue; text-decoration:underline; margin-top:10px;">中断して戻る</button>
+        </div>
+    </div>
+
+    <script>
+        const initialData = {
+            'bio_base': [
+                { id: 'b1', q: 'DNAの基本単位を何というか？', a: 'ヌクレオチド' },
+                { id: 'b2', q: '血液の液体成分を何というか？', a: '血漿' },
+                { id: 'b3', q: '遺伝情報の全体を何というか？', a: 'ゲノム' },
+                { id: 'b4', q: 'ATPの正式名称は？', a: 'アデノシン三リン酸' }
+            ],
+            'history': [
+                { id: 'h1', q: '1185年に成立した幕府は？', a: '鎌倉幕府' },
+                { id: 'h2', q: '織田信長が明智光秀に襲われた事件は？', a: '本能寺の変' },
+                { id: 'h3', q: '聖徳太子が定めた人材登用制度は？', a: '冠位十二階' },
+                { id: 'h4', q: '701年に制定された法典は？', a: '大宝律令' }
+            ]
+        };
+
+        let userLevels = JSON.parse(localStorage.getItem('userLevels')) || {};
+        let currentSubject = "";
+        let masterList = [];
+        let currentIdxInList = 0;
+
+        const canvas = document.getElementById('write_canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function setupCanvas() {
+            ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
+            const getPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+                const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+            const startDraw = (e) => { drawing = true; ctx.beginPath(); const pos = getPos(e); ctx.moveTo(pos.x, pos.y); };
+            const draw = (e) => { if (!drawing) return; const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); };
+            const endDraw = () => { drawing = false; };
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', endDraw);
+            canvas.addEventListener('touchstart', startDraw, {passive: false});
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
+            canvas.addEventListener('touchend', endDraw);
+        }
+
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        function changesubject(name) {
+            currentSubject = name;
+            document.getElementById('menu_area').style.display = 'none';
+            document.getElementById('quiz_area').style.display = 'block';
+            document.getElementById('displaysubject').innerText = name === 'bio_base' ? '【生物基礎】' : '【歴史】';
+            
+            // レベルが低い順に並べて開始
+            masterList = [...initialData[name]].sort((a, b) => (userLevels[a.id] || 0) - (userLevels[b.id] || 0));
+            currentIdxInList = 0;
+            
+            setupCanvas();
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            // リストの末尾に達したら、自動的にリセット（アラートなし）
+            if (currentIdxInList >= masterList.length) {
+                currentIdxInList = 0;
+                // レベル順に並び替えて、苦手なものを最初の方に持ってくる
+                masterList.sort((a, b) => (userLevels[a.id] || 0) - (userLevels[b.id] || 0));
+            }
+
+            const qObj = masterList[currentIdxInList];
+            const lv = userLevels[qObj.id] || 0;
+            
+            document.getElementById('q_status').innerText = `習得度レベル: ${lv}`;
+            document.getElementById('question').innerText = qObj.q;
+            
+            clearCanvas();
+            document.getElementById('answer_zone').style.display = 'none';
+            document.getElementById('show_ans_btn').style.display = 'block';
+        }
+
+        function showAnswer() {
+            document.getElementById('answer_zone').style.display = 'block';
+            document.getElementById('correct_answer').innerText = masterList[currentIdxInList].a;
+            document.getElementById('show_ans_btn').style.display = 'none';
+        }
+
+        function processResult(isCorrect) {
+            const qId = masterList[currentIdxInList].id;
+            
+            if (isCorrect) {
+                userLevels[qId] = (userLevels[qId] || 0) + 1;
+            } else {
+                userLevels[qId] = 0;
+            }
+            
+            localStorage.setItem('userLevels', JSON.stringify(userLevels));
+            
+            currentIdxInList++;
+            renderQuestion();
+        }
+
+        function backToMenu() {
+            document.getElementById('menu_area').style.display = 'block';
+            document.getElementById('quiz_area').style.display = 'none';
+            document.getElementById('displaysubject').innerText = '教科を選択してください';
+        }
+    </script>
+</body>
+</html>
