@@ -1,2 +1,3 @@
+- https://snake0227.github.io/test/test.html
 - このソフトウェアのパッケージは,BSD3条項の下,再頒布及び使用が許可されます.
 - © 2026 Snake
