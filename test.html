@@ -21,15 +21,25 @@
             cursor: pointer; font-size: 16px; border-radius: 10px; border: 1px solid #ddd;
             display: block; font-weight: bold;
         }
+        /* ボタンコンテナを中央寄せにするための設定 */
+        .btn-container {
+            width: 100%;
+            max-width: 320px;
+            margin: 10px auto;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
         .choice-btn, .check-btn { background-color: #007bff; color: white; border: none; }
-        .correct-btn { background-color: #28a745; color: white; border: none; }
-        .incorrect-btn { background-color: #dc3545; color: white; border: none; }
-        .clear-btn { background-color: #6c757d; color: white; border: none; width: 45%; display: inline-block; }
+        .correct-btn { background-color: #28a745; color: white; border: none; width: 48%; }
+        .incorrect-btn { background-color: #dc3545; color: white; border: none; width: 48%; }
+        .clear-btn { background-color: #6c757d; color: white; border: none; width: 48%; }
+        
         #answer_zone { display: none; width: 100%; background: #f8f9fa; padding: 15px; border-radius: 10px; box-sizing: border-box; }
         .ans-text { font-size: 1.2rem; color: #d63384; font-weight: bold; margin: 10px 0; word-break: break-all; }
         #question { font-size: 1.1rem; font-weight: bold; min-height: 2.5em; color: #444; }
         .status { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
-        .report-link { margin-top: 20px; font-size: 0.75rem; color: #999; text-decoration: none; border-top: 1px dashed #ddd; width: 100%; pt: 10px; display: block; }
+        .report-link { margin-top: 20px; font-size: 0.75rem; color: #999; text-decoration: underline; border-top: 1px dashed #ddd; width: 100%; padding-top: 10px; display: block; }
     </style>
 </head>
 <body>
@@ -49,26 +59,27 @@
             
             <canvas id="write_canvas" width="320" height="200"></canvas>
             
-            <div style="width: 100%; display: flex; justify-content: space-between; max-width: 320px;">
+            <div class="btn-container">
                 <button type="button" class="clear-btn" onclick="clearCanvas()">消去</button>
-                <button type="button" id="show_ans_btn" class="check-btn" style="width: 50%;" onclick="showAnswer()">答えを見る</button>
+                <button type="button" id="show_ans_btn" class="check-btn" style="width: 48%;" onclick="showAnswer()">答えを見る</button>
             </div>
 
             <div id="answer_zone">
                 <p style="margin:0;">正解：</p>
                 <p class="ans-text" id="correct_answer"></p>
-                <div style="display: flex; gap: 10px;">
+                <div class="btn-container">
                     <button class="correct-btn" onclick="processResult(true)">〇</button>
                     <button class="incorrect-btn" onclick="processResult(false)">×</button>
                 </div>
             </div>
-            <button onclick="backToMenu()" style="border:none; background:none; color:blue; text-decoration:underline; margin-top:10px;">中断して戻る</button>
+            <button onclick="backToMenu()" style="border:none; background:none; color:blue; text-decoration:underline; margin-top:10px; width:auto;">中断して戻る</button>
         </div>
 
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdbJxPysLusKJJK9AMBa3tHiIGIp6g31vYhLZuB3AgVXI2Eog/viewform?usp=dialog" target="_blank" class="report-link">間違いの報告（匿名）</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdbJxPysLusKJJK9AMBa3tHiIGIp6g31vYhLZuB3AgVXI2Eog/viewform?usp=dialog" target="_blank" class="report-link">間違いの報告（Googleフォーム）</a>
     </div>
 
     <script>
+        // データ部分は変更なし
         const initialData = {
             'bio_base': [
                 { id: 'b1', q: '病原体等の異物から体を守る仕組みは？', a: '免疫' },
