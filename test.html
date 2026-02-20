@@ -26,7 +26,8 @@
         .incorrect-btn { background-color: #dc3545; color: white; border: none; }
         .clear-btn { background-color: #6c757d; color: white; border: none; width: 45%; display: inline-block; }
         #answer_zone { display: none; width: 100%; background: #f8f9fa; padding: 15px; border-radius: 10px; box-sizing: border-box; }
-        .ans-text { font-size: 2.2rem; color: #d63384; font-weight: bold; margin: 10px 0; }
+        /* 答えが長い場合を考慮してサイズを少し調整 */
+        .ans-text { font-size: 1.3rem; color: #d63384; font-weight: bold; margin: 10px 0; word-break: break-all; }
         #question { font-size: 1.1rem; font-weight: bold; min-height: 2.5em; color: #444; }
         .status { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
     </style>
@@ -102,30 +103,13 @@
                 { id: 'b32', q: 'アレルギーの原因となる抗原はなんという？', a: 'アレルゲン' },
                 { id: 'b33', q: '生命が脅かされるような重症なアレルギー症状をなんという？', a: 'アナフィラキシー' },
                 { id: 'b34', q: '自分自身の正常な細胞や組織に対して攻撃してしまう疾患をなんという？', a: '自己免疫疾患' },
-                { id: 'b35', q: 'AIDSとはどのような病気か？以下の語句をすべて用いて説明せよ[HIV,ヘルパーT細胞,体液性免疫,細胞性免疫', a: 'HIVがヘルパーT細胞の機能を停止させ、体液性免疫と細胞性免疫の両方が働かなくなってしまう病気' },
+                { id: 'b35', q: 'AIDSとはどのような病気か？以下の語句をすべて用いて説明せよ[HIV,ヘルパーT細胞,体液性免疫,細胞性免疫]', a: 'HIVがヘルパーT細胞の機能を停止させ、体液性免疫と細胞性免疫の両方が働かなくなってしまう病気' }
             ],
             'history': [
+                { id: 'h1', q: '朝鮮戦争が始まり、日本で警察予備隊が設置されたのは西暦何年？', a: '1950年' }
+            ]
+        };
 
-                { id: 'h1', q: '朝鮮戦争が始まり、', a: '' },
-                { id: 'h2', q: '', a: '' },
-                { id: 'h3', q: '', a: '' },
-                { id: 'h4', q: '', a: '' },
-                { id: 'h5', q: '', a: '' },
-                { id: 'h6', q: '', a: '' },
-                { id: 'h7', q: '', a: '' },
-                { id: 'h8', q: '', a: '' },
-                { id: 'h9', q: '', a: '' },
-                { id: 'h10', q: '', a: '' },
-                { id: 'h11', q: '', a: '' },
-                { id: 'h12', q: '', a: '' },
-                { id: 'h13', q: '', a: '' },
-                { id: 'h14', q: '', a: '' },
-                { id: 'h15', q: '', a: '' },
-                { id: 'h16', q: '', a: '' },
-                { id: 'h17', q: '', a: '' },
-                { id: 'h18', q: '', a: '' },
-                { id: 'h19', q: '', a: '' },
-			]
         let userLevels = JSON.parse(localStorage.getItem('userLevels')) || {};
         let currentSubject = "";
         let masterList = [];
@@ -161,11 +145,8 @@
             document.getElementById('menu_area').style.display = 'none';
             document.getElementById('quiz_area').style.display = 'block';
             document.getElementById('displaysubject').innerText = name === 'bio_base' ? '【生物基礎】' : '【歴史】';
-            
-            // レベルが低い順に並べて開始
             masterList = [...initialData[name]].sort((a, b) => (userLevels[a.id] || 0) - (userLevels[b.id] || 0));
             currentIdxInList = 0;
-            
             setupCanvas();
             renderQuestion();
         }
@@ -173,16 +154,12 @@
         function renderQuestion() {
             if (currentIdxInList >= masterList.length) {
                 currentIdxInList = 0;
-                // レベル順に並び替えて、苦手なものを最初の方に持ってくる
                 masterList.sort((a, b) => (userLevels[a.id] || 0) - (userLevels[b.id] || 0));
             }
-
             const qObj = masterList[currentIdxInList];
             const lv = userLevels[qObj.id] || 0;
-            
             document.getElementById('q_status').innerText = `習得度レベル: ${lv}`;
             document.getElementById('question').innerText = qObj.q;
-            
             clearCanvas();
             document.getElementById('answer_zone').style.display = 'none';
             document.getElementById('show_ans_btn').style.display = 'block';
@@ -196,15 +173,12 @@
 
         function processResult(isCorrect) {
             const qId = masterList[currentIdxInList].id;
-            
             if (isCorrect) {
                 userLevels[qId] = (userLevels[qId] || 0) + 1;
             } else {
                 userLevels[qId] = 0;
             }
-            
             localStorage.setItem('userLevels', JSON.stringify(userLevels));
-            
             currentIdxInList++;
             renderQuestion();
         }
