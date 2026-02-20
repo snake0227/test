@@ -26,10 +26,10 @@
         .incorrect-btn { background-color: #dc3545; color: white; border: none; }
         .clear-btn { background-color: #6c757d; color: white; border: none; width: 45%; display: inline-block; }
         #answer_zone { display: none; width: 100%; background: #f8f9fa; padding: 15px; border-radius: 10px; box-sizing: border-box; }
-        /* 答えが長い場合を考慮してサイズを少し調整 */
-        .ans-text { font-size: 1.3rem; color: #d63384; font-weight: bold; margin: 10px 0; word-break: break-all; }
+        .ans-text { font-size: 1.2rem; color: #d63384; font-weight: bold; margin: 10px 0; word-break: break-all; }
         #question { font-size: 1.1rem; font-weight: bold; min-height: 2.5em; color: #444; }
         .status { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
+        .report-link { margin-top: 20px; font-size: 0.75rem; color: #999; text-decoration: none; border-top: 1px dashed #ddd; width: 100%; pt: 10px; display: block; }
     </style>
 </head>
 <body>
@@ -64,6 +64,8 @@
             </div>
             <button onclick="backToMenu()" style="border:none; background:none; color:blue; text-decoration:underline; margin-top:10px;">中断して戻る</button>
         </div>
+
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdbJxPysLusKJJK9AMBa3tHiIGIp6g31vYhLZuB3AgVXI2Eog/viewform?usp=dialog" target="_blank" class="report-link">間違いの報告（匿名）</a>
     </div>
 
     <script>
@@ -106,7 +108,24 @@
                 { id: 'b35', q: 'AIDSとはどのような病気か？以下の語句をすべて用いて説明せよ[HIV,ヘルパーT細胞,体液性免疫,細胞性免疫]', a: 'HIVがヘルパーT細胞の機能を停止させ、体液性免疫と細胞性免疫の両方が働かなくなってしまう病気' }
             ],
             'history': [
-                { id: 'h1', q: '朝鮮戦争が始まり、日本で警察予備隊が設置されたのは西暦何年？', a: '1950年' }
+                { id: 'h1', q: '朝鮮戦争が始まり、アメリカ軍出撃後の日本国内の治安を維持するために創設された組織は？', a: '警察予備隊' }, 
+                { id: 'h2', q: '中国やソ連を含めた全面講和をあきらめ、西側諸国との早期講和を決定した内閣総理大臣は？', a: '吉田茂' },
+                { id: 'h3', q: '1951年、日本と48か国との間で締結された講和条約は？', a: 'サンフランシスコ平和条約' },
+                { id: 'h4', q: 'サンフランシスコ平和条約と同時に締結され、日本独立後のアメリカ軍駐留が認められた条約は？', a: '日米安全保障条約' },
+                { id: 'h5', q: '1956年のソ連共産党大会で、スターリンの個人崇拝が否定された出来事は？', a: 'スターリン批判' },
+                { id: 'h6', q: 'スターリン批判をした、ソ連共産党第一書記は？', a: 'フルシチョフ' },
+                { id: 'h7', q: '1968年に結ばれた、米ソ英仏中以外の国が核を保有することを防止する条約は？', a: '核拡散防止条約(NPT)' },
+                { id: 'h8', q: '1959年にキューバでカストロを首相とする革命政権が樹立した出来事は？', a: 'キューバ革命' },
+                { id: 'h9', q: '1962年、ソ連のミサイル基地建設により、米ソ間の緊張が核戦争寸前まで高まった出来事は？', a: 'キューバ危機' },
+                { id: 'h10', q: 'キューバ危機が起きた時の、アメリカ合衆国の大統領は？', a: 'ケネディ' },
+                { id: 'h11', q: '1963年に結ばれた核実験に関する条約は？', a: '部分的核実験禁止条約' },
+                { id: 'h12', q: '冷戦期において、軍備縮小を進めた米ソ間の緊張緩和は？', a: 'デタント' },
+                { id: 'h13', q: 'アメリカ合衆国で1950年代から本格化した、黒人への差別撤廃を求める運動は？', a: '公民権運動' },
+                { id: 'h14', q: '非暴力を訴え、アメリカ合衆国の公民権運動を率いた牧師は？', a: 'キング牧師' },
+                { id: 'h15', q: '国力の急速な発展を目指して中国で行われた、1958年以降の経済政策は？', a: '大躍進政策' },
+                { id: 'h16', q: '1966年、毛沢東が急激な社会主義化に批判的な劉少奇の路線を資本主義の復活とみなして起こした革命は？', a: '文化大革命' },
+                { id: 'h17', q: 'アメリカ合衆国が東南アジアの共産主義化を恐れ、1965年からベトナムで開始した戦争は？', a: 'ベトナム戦争' },
+                { id: 'h18', q: '1965年からのベトナム戦争に反対し、アメリカ軍撤退の一因になった世界的な運動は？', a: 'ベトナム反戦運動' }
             ]
         };
 
