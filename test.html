@@ -2,191 +2,228 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>定期テスト対策（文字入力版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>総合クイズアプリ (生物・歴史)</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 10px; }
-        .card { 
-            background: white; padding: 20px; border-radius: 15px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; 
-            margin: auto; display: flex; flex-direction: column; align-items: center; 
-            box-sizing: border-box;
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #333;
         }
-        input[type="text"] {
-            width: 100%; max-width: 350px; height: 50px; font-size: 1.2rem;
-            text-align: center; border: 2px solid #ccc; border-radius: 8px; margin: 15px 0;
-            box-sizing: border-box;
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .category-select {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
         }
         button {
-            width: 100%; max-width: 400px; height: 50px; margin: 5px auto;
-            cursor: pointer; font-size: 16px; border-radius: 10px; border: none;
-            display: block; font-weight: bold; color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #3498db;
+            color: white;
+            transition: background 0.2s;
         }
-        .choice-btn { background-color: #007bff; }
-        .submit-btn { background-color: #28a745; }
-        .next-btn { background-color: #17a2b8; }
-        .clear-btn { background-color: #6c757d; width: 45%; display: inline-block; }
-        
-        #result_area { display: none; width: 100%; margin-top: 15px; padding: 15px; border-radius: 10px; box-sizing: border-box; }
-        .correct-box { background: #d4edda; color: #155724; }
-        .incorrect-box { background: #f8d7da; color: #721c24; }
-        
-        .ans-text { font-size: 1.3rem; font-weight: bold; margin: 5px 0; }
-        #question { font-size: 1.2rem; font-weight: bold; min-height: 2.5em; color: #444; margin: 15px 0; }
-        .status { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
+        button:hover {
+            background-color: #2980b9;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .hidden {
+            display: none;
+        }
+        #result-message {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .correct { color: #27ae60; }
+        .incorrect { color: #c0392b; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>定期テスト対策</h1>
-        <p id="displaysubject">教科を選択してください</p>
-        
-        <div id="menu_area">
-            <button class="choice-btn" onclick="changesubject('bio_base')">生物基礎</button>
-            <button class="choice-btn" onclick="changesubject('history')">歴史</button>
+    <h1>総合クイズアプリ</h1>
+
+    <div id="menu-screen" class="card">
+        <h2>カテゴリを選んでください</h2>
+        <div class="category-select">
+            <button onclick="startQuiz('biology')">生物</button>
+            <button onclick="startQuiz('history')">歴史</button>
         </div>
-
-        <div id="quiz_area" style="display: none; width: 100%;">
-            <p class="status" id="q_status"></p>
-            <p id="question"></p>
-            
-            <!-- 文字入力用のテキストボックス -->
-            <input type="text" id="user_answer" placeholder="答えを入力してください" autocomplete="off">
-            
-            <button type="button" class="submit-btn" onclick="checkAnswer()">答え合わせ</button>
-
-            <!-- 判定結果の表示エリア -->
-            <div id="result_area">
-                <p id="result_msg" style="font-weight: bold; font-size: 1.1rem; margin: 0 0 5px 0;"></p>
-                <p style="margin:0; font-size: 0.9rem;">正解：</p>
-                <p class="ans-text" id="correct_answer"></p>
-                <button type="button" class="next-btn" onclick="nextQuestion()" style="margin-top: 15px;">次の問題へ</button>
-            </div>
-
-            <button onclick="backToMenu()" style="border:none; background:none; color:blue; text-decoration:underline; margin-top:20px; width:auto; display:inline-block; height:auto;">中断して戻る</button>
-        </div>
+        <div id="stats" style="margin-top: 20px; font-size: 14px; color: #666;"></div>
     </div>
 
-    <script>
-        const initialData = {
-            'bio_base': [
-                { id: 'b1', q: '病原体等の異物から体を守る仕組みは？', a: '免疫' },
-                { id: 'b2', q: '病原体等の異物に対応する細胞はなに？', a: '免疫機能' },
-                { id: 'b3', q: '免疫に重要な働きをしているものはなに？', a: '白血球' },
-                { id: 'b4', q: '白血球の約60%を占めるのは？', a: '好中球' },
-                { id: 'b5', q: '侵入してきた病原体に対して即座に働く免疫を何という？', a: '自然免疫' },
-                { id: 'b6', q: '自然免疫に関与する白血球の成分を三種類答えよ', a: '好中球、マクロファージ、樹状細胞' },
-                { id: 'b7', q: '自然免疫において、病原体等の異物を取り込む働きをなんという？', a: '食作用' },
-                { id: 'b8', q: '食作用を持つ細胞はなに？', a: '食細胞' },
-                { id: 'b9', q: '自然免疫だけでは対処できない病原体や毒素を異物として認識し、排除する仕組みはなに？', a: '適応免疫' },
-                { id: 'b10', q: '適応免疫にかかわる主な細胞を２つ答えよ。', a: 'B細胞、T細胞' },
-                { id: 'b11', q: 'B細胞やT細胞によって異物として認識される物質をなんという？', a: '抗原' },
-                { id: 'b12', q: '適応免疫は仕組みの違いから何と何にわけられる？', a: '体液性免疫、細胞性免疫' },
-                { id: 'b13', q: '体液性免疫は、何によって病原体等の抗原を排除する仕組み？', a: '抗体' },
-                { id: 'b14', q: '抗体が抗原を認識して、特異的に結合する反応をなんという？', a: '抗原抗体反応' },
-                { id: 'b15', q: '抗体はなにによって分泌される？', a: '形質細胞' },
-                { id: 'b16', q: '形質細胞は何が増殖し、分化したもの？', a: 'B細胞' },
-                { id: 'b17', q: '細胞に入り込んだウイルス等の抗体で排除することの出来ない異物を、細胞ごと排除する仕組みをなんという？', a: '細胞性免疫' },
-                { id: 'b18', q: '細胞性免疫において感染した細胞ごと排除するのはなんという細胞？', a: 'キラーT細胞' },
-                { id: 'b19', q: '抗原提示を行い、キラーT細胞を活性化・増殖を行う細胞を２つ答えよ。', a: '樹状細胞、ヘルパーT細胞' },
-                { id: 'b20', q: '血管が傷つくと、集まって傷をふさぐのはなに？', a: '血小板' },
-                { id: 'b21', q: '血小板から放出される血小板因子によって形成される、水に溶けにくい繊維状のタンパク質はなに？', a: 'フィブリン' },
-                { id: 'b22', q: 'フィブリンが血球と絡み合うことで作られるのはなに？', a: '血ぺい' },
-                { id: 'b23', q: '血管が傷ついた時に血ぺいを作り、体液の流出を防ぎ、体液を保持する一連の過程をなんというか？', a: '血液凝固' },
-                { id: 'b24', q: 'ある病原体にはじめて感染した時の免疫応答をなんという？', a: '一次応答' },
-                { id: 'b25', q: '２回目以降に同じ病原体に感染した時の免疫応答をなんという？', a: '二次応答' },
-                { id: 'b26', q: '一次応答で活性化したB細胞やT細胞の一部が体内に残ったものをなんという？', a: '記憶細胞' },
-                { id: 'b27', q: '一度感染した病原体に再度感染した時に、初回よりも速く病原体を攻撃する仕組みをなんという？', a: '免疫記憶' },
-                { id: 'b28', q: '抗体は、なんというタンパク質か？', a: '免疫グロブリン' },
-                { id: 'b29', q: '免疫細胞の仕組みを利用し、感染症を予防する方法をなんという？', a: '予防接種' },
-                { id: 'b30', q: '弱毒化、無毒化した抗原をなんという？', a: 'ワクチン' },
-                { id: 'b31', q: '本来は免疫が働く必要がない非自己物質に対して過敏に免疫が働いてしまうことをなんという？', a: 'アレルギー' },
-                { id: 'b32', q: 'アレルギーの原因となる抗原はなんという？', a: 'アレルゲン' },
-                { id: 'b33', q: '生命が脅かされるような重症なアレルギー症状をなんという？', a: 'アナフィラキシー' },
-                { id: 'b34', q: '自分自身の正常な細胞や組織に対して攻撃してしまう疾患をなんという？', a: '自己免疫疾患' },
-            ],
-            'history': [
-                { id: 'h1', q: '朝鮮戦争が始まり、日本で警察予備隊が設置されたのは西暦何年？', a: '1950年' }
-            ]
-        };
+    <div id="quiz-screen" class="card hidden">
+        <h2 id="category-title"></h2>
+        <p id="question-progress"></p>
+        <p id="question-text" style="font-size: 18px; font-weight: bold;"></p>
+        
+        <input type="text" id="user-answer" placeholder="答えを入力してください" onkeydown="handleKeyDown(event)">
+        <button onclick="submitAnswer()">答え合わせ</button>
+        
+        <p id="result-message"></p>
+        <button id="next-btn" class="hidden" onclick="nextQuestion()" style="margin-top: 15px;">次の問題へ</button>
+    </div>
 
-        let userLevels = JSON.parse(localStorage.getItem('userLevels')) || {};
-        let currentSubject = "";
-        let masterList = [];
-        let currentIdxInList = 0;
+    <div id="score-screen" class="card hidden">
+        <h2>結果発表</h2>
+        <p id="final-score" style="font-size: 20px;"></p>
+        <button onclick="returnToMenu()">メニューに戻る</button>
+    </div>
 
-        function changesubject(name) {
-            currentSubject = name;
-            document.getElementById('menu_area').style.display = 'none';
-            document.getElementById('quiz_area').style.display = 'block';
-            document.getElementById('displaysubject').innerText = name === 'bio_base' ? '【生物基礎】' : '【歴史】';
-            
-            masterList = [...initialData[name]].sort((a, b) => (userLevels[a.id] || 0) - (userLevels[b.id] || 0));
-            currentIdxInList = 0;
-            
-            renderQuestion();
+<script>
+    // 問題データ
+    const quizData = {
+        biology: [
+            { q: "遺伝子の本体である物質の名前は？", a: "DNA" },
+            { q: "植物が光エネルギーを使って二酸化炭素と水から有機物を作る働きを何というか？", a: "光合成" },
+            { q: "細胞の中でエネルギー（ATP）を産生する小器官の名前は？", a: "ミトコンドリア" },
+            { q: "生物の体の基本単位となる構造を何というか？", a: "細胞" }
+        ],
+        history: [
+            { q: "1192年に源頼朝が征夷大将軍に任命されて開いた幕府は？", a: "鎌倉幕府" },
+            { q: "1603年に江戸幕府を開いた人物は誰？", a: "徳川家康" },
+            { q: "1867年、第15代将軍徳川慶喜が行った政権返上を何というか？", a: "大政奉還" },
+            { q: "平安京に都を移した天皇は誰？", a: "桓武天皇" }
+        ]
+    };
+
+    let currentCategory = '';
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+
+    // 配列をランダムにシャッフルする関数 (Fisher-Yates)
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function loadStats() {
+        const statsDiv = document.getElementById('stats');
+        const bioProf = localStorage.getItem('bio_proficiency') || '未挑戦';
+        const histProf = localStorage.getItem('hist_proficiency') || '未挑戦';
+        statsDiv.innerHTML = `前回の記録 - 生物: ${bioProf} / 歴史: ${histProf}`;
+    }
+
+    function startQuiz(category) {
+        currentCategory = category;
+        // クイズ開始時に問題をランダムにシャッフル
+        currentQuestions = shuffleArray(quizData[category]);
+        currentIndex = 0;
+        score = 0;
+
+        document.getElementById('menu-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        document.getElementById('category-title').innerText = category === 'biology' ? '【生物クイズ】' : '【歴史クイズ】';
+
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const inputElem = document.getElementById('user-answer');
+        inputElem.value = '';
+        inputElem.disabled = false;
+        document.getElementById('result-message').innerText = '';
+        document.getElementById('next-btn').classList.add('hidden');
+
+        document.getElementById('question-progress').innerText = `問題 ${currentIndex + 1} / ${currentQuestions.length}`;
+        document.getElementById('question-text').innerText = currentQuestions[currentIndex].q;
+        
+        // 入力欄に自動フォーカス
+        inputElem.focus();
+    }
+
+    function submitAnswer() {
+        const userAnswer = document.getElementById('user-answer').value.trim();
+        const correctAnswer = currentQuestions[currentIndex].a;
+        const resultMsg = document.getElementById('result-message');
+
+        if (!userAnswer) return;
+
+        document.getElementById('user-answer').disabled = true;
+
+        if (userAnswer === correctAnswer) {
+            resultMsg.innerText = "正解です！";
+            resultMsg.className = "correct";
+            score++;
+        } else {
+            resultMsg.innerText = `不正解… 正解は「${correctAnswer}」です`;
+            resultMsg.className = "incorrect";
         }
 
-        function renderQuestion() {
-            if (currentIdxInList >= masterList.length) {
-                currentIdxInList = 0;
-                masterList.sort((a, b) => (userLevels[a.id] || 0) - (userLevels[b.id] || 0));
-            }
+        document.getElementById('next-btn').classList.remove('hidden');
+        document.getElementById('next-btn').focus();
+    }
 
-            const qObj = masterList[currentIdxInList];
-            const lv = userLevels[qObj.id] || 0;
-            
-            document.getElementById('q_status').innerText = `習得度レベル: ${lv}`;
-            document.getElementById('question').innerText = qObj.q;
-            
-            // 入力欄をクリアしてフォーカス
-            const inputField = document.getElementById('user_answer');
-            inputField.value = '';
-            inputField.disabled = false;
-            
-            document.getElementById('result_area').style.display = 'none';
-            document.querySelector('.submit-btn').style.display = 'block';
-        }
-
-        function checkAnswer() {
-            const userAns = document.getElementById('user_answer').value.trim();
-            const qObj = masterList[currentIdxInList];
-            const qId = qObj.id;
-            
-            // 前後の空白や全角半角のちょっとした違いを許容したい場合はそのまま、完全一致なら strict
-            const isCorrect = (userAns === qObj.a);
-
-            // レベルの更新
-            if (isCorrect) {
-                userLevels[qId] = (userLevels[qId] || 0) + 1;
-                document.getElementById('result_msg').innerText = "正解！お見事です！";
-                document.getElementById('result_area').className = "correct-box";
+    function handleKeyDown(event) {
+        if (event.key === 'Enter') {
+            const nextBtn = document.getElementById('next-btn');
+            if (nextBtn.classList.contains('hidden')) {
+                submitAnswer();
             } else {
-                userLevels[qId] = 0;
-                document.getElementById('result_msg').innerText = "惜しい！不正解…";
-                document.getElementById('result_area').className = "incorrect-box";
+                nextQuestion();
             }
-            
-            localStorage.setItem('userLevels', JSON.stringify(userLevels));
-
-            // 結果を表示
-            document.getElementById('correct_answer').innerText = qObj.a;
-            document.getElementById('result_area').style.display = 'block';
-            document.querySelector('.submit-btn').style.display = 'none';
-            document.getElementById('user_answer').disabled = true;
         }
+    }
 
-        function nextQuestion() {
-            currentIdxInList++;
-            renderQuestion();
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < currentQuestions.length) {
+            showQuestion();
+        } else {
+            showScore();
         }
+    }
 
-        function backToMenu() {
-            document.getElementById('menu_area').style.display = 'block';
-            document.getElementById('quiz_area').style.display = 'none';
-            document.getElementById('displaysubject').innerText = '教科を選択してください';
-        }
-    </script>
+    function showScore() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('score-screen').classList.remove('hidden');
+        
+        const percentage = Math.round((score / currentQuestions.length) * 100);
+        document.getElementById('final-score').innerText = `正解数: ${score} / ${currentQuestions.length} (${percentage}%)`;
+
+        // localStorageに保存
+        const key = currentCategory === 'biology' ? 'bio_proficiency' : 'hist_proficiency';
+        localStorage.setItem(key, `${percentage}% (${score}/${currentQuestions.length})`);
+    }
+
+    function returnToMenu() {
+        document.getElementById('score-screen').classList.add('hidden');
+        document.getElementById('menu-screen').classList.remove('hidden');
+        loadStats();
+    }
+
+    window.onload = loadStats;
+</script>
+
 </body>
 </html>
