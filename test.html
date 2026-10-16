@@ -82,7 +82,8 @@
         <p id="question-progress"></p>
         <p id="question-text" style="font-size: 18px; font-weight: bold;"></p>
         
-        <input type="text" id="user-answer" placeholder="答えを入力してください" onkeydown="handleKeyDown(event)">
+        <!-- 予測変換や自動補完をオフにする属性を追加 -->
+        <input type="text" id="user-answer" placeholder="答えを入力してください" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="handleKeyDown(event)">
         <button onclick="submitAnswer()">答え合わせ</button>
         
         <p id="result-message"></p>
