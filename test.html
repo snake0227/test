@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>総合クイズアプリ (歴史・公民)</title>
+    <title>総合クイズアプリ</title>
     <style>
         body {
             font-family: sans-serif;
@@ -26,6 +26,7 @@
         }
         .category-select {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             justify-content: center;
             margin-bottom: 20px;
@@ -53,6 +54,52 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
+        /* 選択肢ボタンのスタイル */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .option-btn {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .option-btn:hover:not(:disabled) {
+            background-color: #d0d7de;
+        }
+        .option-btn.selected {
+            background-color: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        /* 選択肢内画像スタイル */
+        .option-img {
+            max-height: 80px;
+            max-width: 150px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: white;
+            padding: 2px;
+            border: 1px solid #ddd;
+        }
+
         .hidden {
             display: none;
         }
@@ -62,6 +109,14 @@
         }
         .correct { color: #27ae60; }
         .incorrect { color: #c0392b; }
+        .quiz-image {
+            max-width: 100%;
+            max-height: 250px;
+            display: block;
+            margin: 15px auto;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
@@ -73,18 +128,30 @@
         <div class="category-select">
             <button onclick="startQuiz('history')">歴史</button>
             <button onclick="startQuiz('civics')">公民</button>
+            <button onclick="startQuiz('physics')">物理</button>
+            <button onclick="startQuiz('chemistry')">化学</button>
         </div>
-        <div id="stats" style="margin-top: 20px; font-size: 14px; color: #666;"></div>
+        <div id="stats" style="margin-top: 20px; font-size: 14px; color: #666; text-align: center;"></div>
     </div>
 
     <div id="quiz-screen" class="card hidden">
         <h2 id="category-title"></h2>
         <p id="question-progress"></p>
-        <p id="question-text" style="font-size: 18px; font-weight: bold;"></p>
+        <p id="question-text" style="font-size: 18px; font-weight: bold; white-space: pre-wrap;"></p>
         
-        <!-- 予測変換や自動補完をオフにする属性 -->
-        <input type="text" id="user-answer" placeholder="答えを入力してください" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="handleKeyDown(event)">
-        <button onclick="submitAnswer()">答え合わせ</button>
+        <!-- イラストを表示する動的エリア -->
+        <div id="image-container"></div>
+
+        <!-- 記述式用の入力欄＆ボタン -->
+        <div id="text-answer-area">
+            <input type="text" id="user-answer" placeholder="答えを入力してください" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="handleKeyDown(event)">
+            <button onclick="submitTextAnswer()">答え合わせ</button>
+        </div>
+
+        <!-- 四択式用の選択肢ボタンエリア -->
+        <div id="choice-answer-area" class="options-container hidden"></div>
+        <!-- 複数選択時専用の決定ボタン -->
+        <button id="multi-submit-btn" class="hidden" onclick="submitMultiChoiceAnswer()" style="margin-top: 10px; width: 100%;">答え合わせ</button>
         
         <p id="result-message"></p>
         <button id="next-btn" class="hidden" onclick="nextQuestion()" style="margin-top: 15px;">次の問題へ</button>
@@ -97,7 +164,7 @@
     </div>
 
 <script>
-    // 問題データ（歴史 ＋ 公民プリント(1)〜(41)の全問題）
+    // 問題データ
     const quizData = {
         history: [
             // プリントNo.1
@@ -115,10 +182,10 @@
             { q: "600年に大和王権が隋へ送った使者を何というか？", a: "遣隋使" },
             { q: "607年の遣隋使として隋へ行った人物は？", a: "小野妹子" },
             { q: "603年に定められた制度は？", a: "冠位十二階" },
-            { q: "604年に定められた決まりは？", a: "十七条憲法" },
+            { q: "604年に定められた決まりは？", a: "憲法十七条" },
             { q: "一隅が滅びて新しく成立し、国際的緊張を高めた中国の王朝は？", a: "隋" },
             { q: "蘇我入鹿を倒した中心人物（皇子）はだれ？", a: "中大兄皇子" },
-            { q: "中大兄皇子・中臣鎌足が倒した相手はだれ？", a: "蘇我入鹿" },
+            { q: "蘇我入鹿を倒した相手はだれ？", a: "蘇我入鹿" },
             // プリントNo.2
             { q: "「土地と人民は国家（天皇）が直接支配する」という方針、これ一連の改革を何というか？", a: "大化の改新" },
             { q: "唐・新羅に滅ぼされ、日本と同盟関係にあった国は？", a: "百済" },
@@ -169,47 +236,252 @@
             { q: "藤原百川とともに律令制の立て直しを進めた天皇は誰か？", a: "光仁天皇" }
         ],
         civics: [
-            { q: "(1) 1889年に公布され、天皇が統治権を持つことを定めた憲法を何というか。", a: "大日本帝国憲法" },
-            { q: "(2) 主権が制定し、国民に与える形で定められた憲法を何というか。", a: "欽定憲法" },
-            { q: "(3) 大日本帝国憲法のもとで、天皇が陸軍を指揮・統帥する機関を何というか。", a: "統帥権" },
-            { q: "(4) 大日本帝国憲法において、天皇の支配を受ける国民を何と呼んだか。", a: "臣民" },
-            { q: "(5) 1946年に公布され、1947年5月3日に施行された現在の日本の憲法を何というか。", a: "日本国憲法" },
-            { q: "(6) 国民が制定する、または国民の意思に基づいて決定される憲法を何というか。", a: "民定憲法" },
-            { q: "(7) 日本国憲法の基本原理の一つで、戦争を放棄し、平和を大切にする考え方を何というか。", a: "平和主義" },
-            { q: "(8) 日本国憲法第9条に定められている、(7)の具体的な内容を3つ答えなさい。", a: "戦争の放棄・戦力の不保持・交戦権の否認" },
-            { q: "(9) 日本国憲法の基本原理の一つで、人が生まれながらに持つ権利を大切にする考え方を何というか。", a: "基本的人権の尊重" },
-            { q: "(10) 日本国憲法の基本原理の一つで、国の政治のあり方を最終的に決める権力が国民にあるという基本原理を何というか。", a: "国民主権" },
-            { q: "(11) 1945年、日本に降伏を求め、戦後の日本の民主化などの方針を示した宣言を何というか。", a: "ポツダム宣言" },
-            { q: "(12) 第二次世界大戦後、日本の占領政策を進めた連合国軍最高司令官総司令部をアルファベット3文字で何というか。", a: "GHQ" },
-            { q: "(13) 第二次世界大戦後、GHQの最高司令官として日本の占領政策を指導した人物は誰か。", a: "マッカーサー" },
-            { q: "(14) 日本国憲法の制定過程で、日本政府が作成したものの大日本帝国憲法と大きく変わらない内容だったため、GHQに不十分と判断された憲法改正案を何というか。", a: "松本案" },
-            { q: "(15) 法律や命令などが憲法に違反していないかを裁判所が判断する権限を何というか。", a: "違憲審査権" },
-            { q: "(16) 日本の司法機関の中で最も上位に位置する裁判所を何というか。", a: "最高裁判所" },
-            { q: "(17) (16)は、上訴することのできない最終的な裁判所であることから、何と呼ばれるか。", a: "終審裁判所" },
-            { q: "(18) (16)は違憲審査権を持ち、憲法を守る重要な役割を担うことから、何と呼ばれるか。", a: "憲法の番人" },
-            { q: "(19) 通常の法律よりも改正の手続きが厳しく定められている憲法を何というか。", a: "硬性憲法" },
-            { q: "(20) 一人ひとりがかけがえのない存在として大切にされなければならないという、日本国憲法第13条の考え方を何というか。", a: "個人の尊重" },
-            { q: "(21) 日本国憲法第13条で保障されている、生命・自由を大切にし、幸福を追い求める権利を何というか。", a: "幸福追求権" },
-            { q: "(22) 日本国憲法第14条で定められている、すべての人が差別されず平等に扱われるという原則を何というか。", a: "法の下の平等" },
-            { q: "(23) 結婚していない男女間に生まれた相続分を、結婚している男女の子の半分としていた民法の規定が違憲かどうか争われた裁判を何というか。", a: "婚外子相続差別訴訟" },
-            { q: "(24) 日本国憲法第24条で定められている、婚姻や家族生活において男女が対等な立場にあるという原則を何というか。", a: "両性の平等" },
-            { q: "(25) 選挙において、すべての有権者の一票の価値を平等に扱うという原則を何というか。", a: "選挙の平等" },
-            { q: "(26) 経済状況や性別などによって差別されず、能力に応じて等しく教育を受ける機会が保障されることを何というか。", a: "教育の機会均等等" },
-            { q: "(27) 特定の民族や国籍などの人に対して、差別や憎悪をあおったり、排斥を呼びかけたりする言動を何というか。", a: "ヘイトスピーチ" },
-            { q: "(28) 国家から不当に干渉や制限を受けず、自由に行動できることを実現する自由を何というか。", a: "消極的自由" },
-            { q: "(29) 思想・良心、信教、表現など、人間の内面やその表現に関する自由を何というか。", a: "精神の自由" },
-            { q: "(30) 国や地方公共団体などの政教を分離し、特定の宗教に特権を与えたり宗教的活動をしたりすることを禁止する原則を何というか。", a: "政教分離" },
-            { q: "(31) 不当に逮捕・拘束されたり、刑罰を科されたりしないことを保障する自由を何というか。", a: "身体の自由" },
-            { q: "(32) 職業選択の自由や財産権など、経済に関する自由をまとめて何というか。", a: "経済活動の自由" },
-            { q: "(33) 法律で定められた適正な手続きによらなければ、生命や自由を奪われたり、刑罰を科されたりしないという保障を何というか。", a: "適正手続きの保障" },
-            { q: "(34) 刑事事件で、自分に不利益となる供述を強要されない権利を何というか。", a: "黙秘権" },
-            { q: "(35) 行為をしたときには合法だったことを、後から作った法律によって処罰することを禁止する原則を何というか。", a: "遡及処罰の禁止" },
-            { q: "(36) 原則として、裁判官が発する令状がなければ逮捕や捜査などをすることができないという原則を何というか。", a: "令状主義" },
-            { q: "(37) 人権と人権が衝突した場合に、それぞれの人権を調整するための原理を何というか。", a: "公共の福祉" },
-            { q: "(38) 小説『チャタレイ夫人の恋人』のわいせつ性と表現の自由が争われた事件を何というか。", a: "チャタレイ事件" },
-            { q: "(39) 企業が採用時に応募者の思想・信条を調査することなどが問題となり、私人間における人権保障が争われた事件を何というか。", a: "三菱樹脂事件" },
-            { q: "(40) 愛媛県が公金の神社への玉串料などを支出したことが、憲法の政教分離原則に反するかが争われた訴訟を何というか。", a: "愛媛玉串料訴訟" },
-            { q: "(41) 薬局を開設する際の距離制限が、職業選択の自由に反するかが争われた訴訟を何というか。", a: "薬事法距離制限訴訟" }
+            { q: "1889年に公布され、天皇が統治権を持つことを定めた憲法を何というか。", a: "大日本帝国憲法" },
+            { q: "主権が制定し、国民に与える形で定められた憲法を何というか。", a: "欽定憲法" },
+            { q: "大日本帝国憲法のもとで、天皇が陸軍を指揮・統帥する機関を何というか。", a: "統帥権" },
+            { q: "大日本帝国憲法において、天皇の支配を受ける国民を何と呼んだか。", a: "臣民" },
+            { q: "1946年に公布され、1947年5月3日に施行された現在の日本の憲法を何というか。", a: "日本国憲法" },
+            { q: "国民が制定する、または国民の意思に基づいて決定される憲法を何というか。", a: "民定憲法" },
+            { q: "日本国憲法の基本原理の一つで、戦争を放棄し、平和を大切にする考え方を何というか。", a: "平和主義" },
+            { q: "日本国憲法第9条に定められている、平和主義の具体的な内容を3つ答えなさい。", a: "戦争の放棄・戦力の不保持・交戦権の否認" },
+            { q: "日本国憲法の基本原理の一つで、人が生まれながらに持つ権利を大切にする考え方を何というか。", a: "基本的人権の尊重" },
+            { q: "日本国憲法の基本原理の一つで、国の政治のあり方を最終的に決める権力が国民にあるという基本原理を何というか。", a: "国民主権" },
+            { q: "1945年、日本に降伏を求め、戦後の日本の民主化などの方針を示した宣言を何というか。", a: "ポツダム宣言" },
+            { q: "第二次世界大戦後、日本の占領政策を進めた連合国軍最高司令官総司令部をアルファベット3文字で何というか。", a: "GHQ" },
+            { q: "第二次世界大戦後、GHQの最高司令官として日本の占領政策を指導した人物は誰か。", a: "マッカーサー" },
+            { q: "日本国憲法の制定過程で、日本政府が作成したものの大日本帝国憲法と大きく変わらない内容だったため、GHQに不十分と判断された憲法改正案を何というか。", a: "松本案" },
+            { q: "法律や命令などが憲法に違反していないかを裁判所が判断する権限を何というか。", a: "違憲審査権" },
+            { q: "日本の司法機関の中で最も上位に位置する裁判所を何というか。", a: "最高裁判所" },
+            { q: "最高裁判所は、上訴することのできない最終的な裁判所であることから、何と呼ばれるか。", a: "終審裁判所" },
+            { q: "最高裁判所は違憲審査権を持ち、憲法を守る重要な役割を担うことから、何と呼ばれるか。", a: "憲法の番人" },
+            { q: "通常の法律よりも改正の手続きが厳しく定められている憲法を何というか。", a: "硬性憲法" },
+            { q: "一人ひとりがかけがえのない存在として大切にされなければならないという、日本国憲法第13条の考え方を何というか。", a: "個人の尊重" },
+            { q: "日本国憲法第13条で保障されている、生命・自由を大切にし、幸福を追い求める権利を何というか。", a: "幸福追求権" },
+            { q: "日本国憲法第14条で定められている、すべての人が差別されず平等に扱われるという原則を何というか。", a: "法の下の平等" },
+            { q: "結婚していない男女間に生まれた相続分を、結婚している男女の子の半分としていた民法の規定が違憲かどうか争われた裁判を何というか。", a: "婚外子相続差別訴訟" },
+            { q: "日本国憲法第24条で定められている、婚姻や家族生活において男女が対等な立場にあるという原則を何というか。", a: "両性の平等" },
+            { q: "選挙において、すべての有権者の一票の価値を平等に扱うという原則を何というか。", a: "選挙の平等" },
+            { q: "経済状況や性別などによって差別されず、能力に応じて等しく教育を受ける機会が保障されることを何というか。", a: "教育の機会均等" },
+            { q: "特定の民族や国籍などの人に対して、差別や憎悪をあおったり、排斥を呼びかけたりする言動を何というか。", a: "ヘイトスピーチ" },
+            { q: "国家から不当に干渉や制限を受けず、自由に行動できることを実現する自由を何というか。", a: "消極的自由" },
+            { q: "思想・良心、信教、表現など、人間の内面やその表現に関する自由を何というか。", a: "精神の自由" },
+            { q: "国や地方公共団体などの政教を分離し、特定の宗教に特権を与えたり宗教的活動をしたりすることを禁止する原則を何というか。", a: "政教分離" },
+            { q: "不当に逮捕・拘束されたり、刑罰を科されたりしないことを保障する自由を何というか。", a: "身体の自由" },
+            { q: "職業選択の自由や財産権など、経済に関する自由をまとめて何というか。", a: "経済活動の自由" },
+            { q: "法律で定められた適正な手続きによらなければ、生命や自由を奪われたり、刑罰を科されたりしないという保障を何というか。", a: "適正手続きの保障" },
+            { q: "刑事事件で、自分に不利益となる供述を強要されない権利を何というか。", a: "黙秘権" },
+            { q: "行為をしたときには合法だったことを、後から作った法律によって処罰することを禁止する原則を何というか。", a: "遡及処罰の禁止" },
+            { q: "原則として、裁判官が発する令状がなければ逮捕や捜査などをすることができないという原則を何というか。", a: "令状主義" },
+            { q: "人権と人権が衝突した場合に、それぞれの人権を調整するための原理を何というか。", a: "公共の福祉" },
+            { q: "小説『チャタレイ夫人の恋人』のわいせつ性と表現の自由が争われた事件を何というか。", a: "チャタレイ事件" },
+            { q: "企業が採用時に応募者の思想・信条を調査することなどが問題となり、私人間における人権保障が争われた事件を何というか。", a: "三菱樹脂事件" },
+            { q: "愛媛県が公金の神社への玉串料などを支出したことが、憲法の政教分離原則に反するかが争われた訴訟を何というか。", a: "愛媛玉串料訴訟" },
+            { q: "薬局を開設する際の距離制限が、職業選択の自由に反するかが争われた訴訟を何というか。", a: "薬事法距離制限訴訟" }
+        ],
+        physics: [
+            // 【物理】 入力用空枠
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" },
+            { q: "", a: "" }
+        ],
+        chemistry: [
+            { 
+                q: "最外殻の電子を放出したり受け取ったりして、( ア )と同じ電子配置になったものをイオンという。<br>" +
+                   "イオンには(a)<u>正の電荷をもつ陽イオン</u>と、負の電荷をもつ陰イオンが存在し、一般的に価電子の数が少ない原子は陽イオンに、価電子の数が多い原子は陰イオンになりやすい。<br>" +
+                   "また、1種類の原子からなるイオンを単原子イオン、(b)<u>2種類以上の原子からなるイオンを多原子イオン</u>という。<br><br>" +
+                   "文章中の( ア )にあてはまる語句として最も適当なものを選べ。", 
+                a: "貴ガス", 
+                options: ["ハロゲン", "アルカリ土類金属", "アルカリ金属", "貴ガス"] 
+            },
+            { 
+                q: "最外殻の電子を放出したり受け取ったりして、( ア )と同じ電子配置になったものをイオンという。<br>" +
+                   "イオンには(a)<u>正の電荷をもつ陽イオン</u>と、負の電荷をもつ陰イオンが存在し、一般的に価電子の数が少ない原子は陽イオンに、価電子の数が多い原子は陰イオンになりやすい。<br>" +
+                   "また、1種類の原子からなるイオンを単原子イオン、(b)<u>2種類以上の原子からなるイオンを多原子イオン</u>という。<br><br>" +
+                   "文章中の下線部(a)について、陽イオンの陽子の数と電子の数の関係について最も適当なものを選べ。", 
+                a: "陽子の数＞電子の数", 
+                options: ["陽子の数＞電子の数", "陽子の数＝電子の数", "陽子の数＜電子の数"] 
+            },
+            { 
+                q: "最外殻の電子を放出したり受け取ったりして、( ア )と同じ電子配置になったものをイオンという。<br>" +
+                   "イオンには(a)<u>正の電荷をもつ陽イオン</u>と、負の電荷をもつ陰イオンが存在し、一般的に価電子の数が少ない原子は陽イオンに、価電子の数が多い原子は陰イオンになりやすい。<br>" +
+                   "また、1種類の原子からなるイオンを単原子イオン、(b)<u>2種類以上の原子からなるイオンを多原子イオン</u>という。<br><br>" +
+                   "文章中の下線部(b)について、多原子イオンに該当するものを一つ選べ。", 
+                a: "水酸化物イオン", 
+                options: ["臭化物イオン", "水酸化物イオン", "亜鉛イオン", "酸化物イオン"] 
+            },
+            { 
+                q: "HCO₃⁻ の名称として最も適当なものを一つ選べ。", 
+                a: "炭酸水素イオン", 
+                options: ["炭酸イオン", "炭酸水素イオン", "酢酸イオン", "オキソニウムイオン"] 
+            },
+            { 
+                q: "硫酸イオンのイオン式として最も適当なものを一つ選べ。", 
+                a: "SO₄²⁻", 
+                options: ["SO₃⁻", "SO₃²⁻", "SO₄⁻", "SO₄²⁻"] 
+            },
+            { 
+                q: "銀イオンに該当するものとして最も適当なものを一つ選べ。", 
+                a: "1 価の陽イオン", 
+                options: ["1 価の陽イオン", "2 価の陽イオン", "1 価の陰イオン", "2 価の陰イオン"] 
+            },
+
+            // 【分子と共有結合】プリントより
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "（   ） …… 水が H₂個, O 1個で成り立っているように、決まった種類の非金属元素の原子が決まった数だけ結びついた粒子。",
+                a: "分子"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "・2個の原子からなる分子を（   ）という。<br>" +
+                   "（例）H₂, O₂",
+                a: "二原子分子"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "・3個以上の原子からなる分子を（   ）という。<br>" +
+                   "（例）H₂O, NH₃",
+                a: "多原子分子"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "・貴ガスの単体は、1個の原子が分子のふるまいをするので（   ）という。<br>" +
+                   "（例）He, Ar",
+                a: "単原子分子"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "分子は、構成している原子の種類を元素記号で示し、その数（1は省略）を右下に示した（   ）を用いて表す。",
+                a: "分子式"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "2個の水素原子が1個ずつ電子を出し合い、それを両原子間で共有している。その結果として最外殻が閉殻となる。このように、2個の原子が互いに電子を共有してできる結合を（   ）という。",
+                a: "共有結合",
+                img: "水素共有結合.jpg"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>各水素原子は(   )と同じ安定的な電子配置になる。",
+                a: "ヘリウム",
+                img: "水素共有結合.jpg"
+            },
+            {
+                q: "( a )に入る語句を答えよ<br>" +
+                   "水素原子は（  a ）と、塩素原子は（ b ）と、それぞれ同じ安定な電子配置となり、塩化水素分子が形成される。",
+                a: "ヘリウム",
+                img: "HCl共有結合.jpg"
+            },
+            {
+                q: "( b )に入る語句を答えよ<br>" +
+                   "水素原子は（  a ）と、塩素原子は（ b ）と、それぞれ同じ安定な電子配置となり、塩化水素分子が形成される。",
+                a: "アルゴン",
+                img: "HCl共有結合.jpg"
+            },
+            {
+                q: "(  )に入る語句を答えよ<br>" +
+                   "分子の電子式において、原子間で共有されて対(ペア)になっている2個の電子を（   ）という。",
+                a: "共有電子対",
+                img: "HCl共有結合.jpg"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "分子の電子式において、原子間で共有されていない電子対を（   ）という。",
+                a: "非共有電子対",
+                img: "HCl共有結合.jpg"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "分子中の原子の共有結合のようすを、線（価標）を用いて表した化学式を（   ）という。",
+                a: "構造式"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "原子間で共有されている電子対を線1本（―）で表すものを（   ）という。",
+                a: "電子式"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "各原子から出している線の数を、その原子の（   ）という。",
+                a: "原子価",
+                img: "原子価.png"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "共有結合において共有電子対が1組（電子2個）の結合を（   ）結合という。",
+                a: "単",
+                img: "単結合.png"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "共有結合において共有電子対が2組（電子4個）の結合を（   ）結合という。",
+                a: "二重",
+                img: "二重結合.png"
+            },
+            {
+                q: "(   )に入る語句を答えよ<br>" +
+                   "共有結合において共有電子対が3組（電子6個）の結合を（   ）結合という。",
+                a: "三重",
+                img: "三重結合.png"
+            },
+
+            // 【新しく追加：イオン化エネルギーと電子親和力のグラフ・内容】
+            {
+                q: "原子から電子1個を取り去り、1価の陽イオンにするのに必要なエネルギーを何というか？",
+                a: "イオン化エネルギー",
+            },
+            {
+                q: "イオン化エネルギーが小さい原子ほど、何イオンになりやすいか？",
+                a: "陽イオン",
+            },
+            {
+                q: "画像のグラフにおいて、各周期でイオン化エネルギーが『最大』になっている（山の頂点にある）元素群は何というか？",
+                a: "貴ガス",
+                options: ["アルカリ金属", "ハロゲン", "貴ガス", "アルカリ土類金属"],
+                img: "image_ccc3a5.jpg"
+            },
+            {
+                q: "画像のグラフにおいて、各周期でイオン化エネルギーが『最小』になっている（谷の底にある）元素群は何というか？",
+                a: "アルカリ金属",
+                options: ["アルカリ金属", "ハロゲン", "貴ガス", "アルカリ土類金属"],
+                img: "image_ccc3a5.jpg"
+            },
+            {
+                q: "原子が電子1個を受け取り、1価の陰イオンとなるときに放出されるエネルギーを何というか？",
+                a: "電子親和力",
+            },
+            {
+                q: "電子親和力が大きい原子ほど、何イオンになりやすいか？",
+                a: "陰イオン",
+            },
+            {
+            }
         ]
     };
 
@@ -217,8 +489,8 @@
     let currentQuestions = [];
     let currentIndex = 0;
     let score = 0;
+    let selectedOptions = [];
 
-    // 配列をランダムにシャッフルする関数 (Fisher-Yates)
     function shuffleArray(array) {
         let arr = [...array];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -232,45 +504,168 @@
         const statsDiv = document.getElementById('stats');
         const histProf = localStorage.getItem('hist_proficiency') || '未挑戦';
         const civicsProf = localStorage.getItem('civics_proficiency') || '未挑戦';
-        statsDiv.innerHTML = `前回の記録 - 歴史: ${histProf} / 公民: ${civicsProf}`;
+        const physProf = localStorage.getItem('phys_proficiency') || '未挑戦';
+        const chemProf = localStorage.getItem('chem_proficiency') || '未挑戦';
+        statsDiv.innerHTML = `前回の記録 - 歴史: ${histProf} / 公民: ${civicsProf} / 物理: ${physProf} / 化学: ${chemProf}`;
     }
 
     function startQuiz(category) {
         currentCategory = category;
-        currentQuestions = shuffleArray(quizData[category]);
+        
+        const validQuestions = quizData[category].filter(item => item.q && item.q.trim() !== "");
+        
+        if (validQuestions.length === 0) {
+            alert('このカテゴリにはまだ有効な問題が入力されていません。');
+            return;
+        }
+
+        currentQuestions = shuffleArray(validQuestions);
         currentIndex = 0;
         score = 0;
 
         document.getElementById('menu-screen').classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
-        document.getElementById('category-title').innerText = category === 'history' ? '【歴史クイズ】' : '【公民クイズ】';
+        
+        const titles = {
+            history: '【歴史クイズ】',
+            civics: '【公民クイズ】',
+            physics: '【物理クイズ】',
+            chemistry: '【化学クイズ】'
+        };
+        document.getElementById('category-title').innerText = titles[category];
 
         showQuestion();
     }
 
     function showQuestion() {
+        const textInputArea = document.getElementById('text-answer-area');
+        const choiceArea = document.getElementById('choice-answer-area');
+        const multiSubmitBtn = document.getElementById('multi-submit-btn');
         const inputElem = document.getElementById('user-answer');
+        const imageContainer = document.getElementById('image-container');
+
         inputElem.value = '';
         inputElem.disabled = false;
+        selectedOptions = [];
         document.getElementById('result-message').innerText = '';
         document.getElementById('next-btn').classList.add('hidden');
+        multiSubmitBtn.classList.add('hidden');
 
+        const currentQ = currentQuestions[currentIndex];
         document.getElementById('question-progress').innerText = `問題 ${currentIndex + 1} / ${currentQuestions.length}`;
-        document.getElementById('question-text').innerText = currentQuestions[currentIndex].q;
+        document.getElementById('question-text').innerHTML = currentQ.q;
         
-        inputElem.focus();
+        imageContainer.innerHTML = '';
+
+        if (currentQ.img && currentQ.img.trim() !== "") {
+            const imgElem = document.createElement('img');
+            imgElem.className = 'quiz-image';
+            imgElem.src = currentQ.img;
+            imgElem.alt = '問題のイラスト';
+            imageContainer.appendChild(imgElem);
+        }
+
+        if (currentQ.options && currentQ.options.length > 0) {
+            textInputArea.classList.add('hidden');
+            choiceArea.classList.remove('hidden');
+            
+            choiceArea.innerHTML = '';
+            const shuffledOptions = shuffleArray(currentQ.options);
+            const isMultiSelect = Array.isArray(currentQ.a);
+
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                
+                let optionValue = '';
+                let optionText = '';
+                let optionImgSrc = '';
+
+                if (typeof opt === 'object' && opt !== null) {
+                    optionValue = opt.text || opt.img;
+                    optionText = opt.text || '';
+                    optionImgSrc = opt.img || '';
+                } else {
+                    optionValue = opt;
+                    optionText = opt;
+                }
+
+                if (optionText) {
+                    const span = document.createElement('span');
+                    span.innerText = optionText;
+                    btn.appendChild(span);
+                }
+
+                if (optionImgSrc) {
+                    const img = document.createElement('img');
+                    img.src = optionImgSrc;
+                    img.className = 'option-img';
+                    img.alt = '選択肢の画像';
+                    btn.appendChild(img);
+                }
+
+                if (isMultiSelect) {
+                    btn.onclick = () => toggleOptionSelect(btn, optionValue);
+                } else {
+                    btn.onclick = () => submitSingleChoiceAnswer(optionValue);
+                }
+                choiceArea.appendChild(btn);
+            });
+
+            if (isMultiSelect) {
+                multiSubmitBtn.classList.remove('hidden');
+            }
+        } else {
+            textInputArea.classList.remove('hidden');
+            choiceArea.classList.add('hidden');
+            inputElem.focus();
+        }
     }
 
-    function submitAnswer() {
+    function submitTextAnswer() {
         const userAnswer = document.getElementById('user-answer').value.trim();
         const correctAnswer = currentQuestions[currentIndex].a;
-        const resultMsg = document.getElementById('result-message');
-
         if (!userAnswer) return;
 
         document.getElementById('user-answer').disabled = true;
+        evaluateAnswer(userAnswer === correctAnswer, correctAnswer);
+    }
 
-        if (userAnswer === correctAnswer) {
+    function submitSingleChoiceAnswer(selectedOption) {
+        const correctAnswer = currentQuestions[currentIndex].a;
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(btn => btn.disabled = true);
+
+        evaluateAnswer(selectedOption === correctAnswer, correctAnswer);
+    }
+
+    function toggleOptionSelect(btn, optionValue) {
+        if (selectedOptions.includes(optionValue)) {
+            selectedOptions = selectedOptions.filter(item => item !== optionValue);
+            btn.classList.remove('selected');
+        } else {
+            selectedOptions.push(optionValue);
+            btn.classList.add('selected');
+        }
+    }
+
+    function submitMultiChoiceAnswer() {
+        const correctAnswer = currentQuestions[currentIndex].a;
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(btn => btn.disabled = true);
+        document.getElementById('multi-submit-btn').classList.add('hidden');
+
+        const isCorrect = selectedOptions.length === correctAnswer.length &&
+            selectedOptions.every(val => correctAnswer.includes(val));
+
+        const displayCorrectAnswer = correctAnswer.join('・');
+        evaluateAnswer(isCorrect, displayCorrectAnswer);
+    }
+
+    function evaluateAnswer(isCorrect, correctAnswer) {
+        const resultMsg = document.getElementById('result-message');
+
+        if (isCorrect) {
             resultMsg.innerText = "正解です！";
             resultMsg.className = "correct";
             score++;
@@ -287,7 +682,12 @@
         if (event.key === 'Enter') {
             const nextBtn = document.getElementById('next-btn');
             if (nextBtn.classList.contains('hidden')) {
-                submitAnswer();
+                const multiBtn = document.getElementById('multi-submit-btn');
+                if (!multiBtn.classList.contains('hidden')) {
+                    submitMultiChoiceAnswer();
+                } else {
+                    submitTextAnswer();
+                }
             } else {
                 nextQuestion();
             }
@@ -310,8 +710,13 @@
         const percentage = Math.round((score / currentQuestions.length) * 100);
         document.getElementById('final-score').innerText = `正解数: ${score} / ${currentQuestions.length} (${percentage}%)`;
 
-        const key = currentCategory === 'history' ? 'hist_proficiency' : 'civics_proficiency';
-        localStorage.setItem(key, `${percentage}% (${score}/${currentQuestions.length})`);
+        const keys = {
+            history: 'hist_proficiency',
+            civics: 'civics_proficiency',
+            physics: 'phys_proficiency',
+            chemistry: 'chem_proficiency'
+        };
+        localStorage.setItem(keys[currentCategory], `${percentage}% (${score}/${currentQuestions.length})`);
     }
 
     function returnToMenu() {
